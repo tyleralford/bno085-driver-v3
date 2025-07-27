@@ -91,8 +91,7 @@ def generate_launch_description():
         # Alternative visualization - topic echo (when RViz has issues)
         ExecuteProcess(
             cmd=[
-                'ros2', 'topic', 'echo', '/imu/data', 
-                '--field', 'angular_velocity'
+                'ros2', 'topic', 'echo', '/imu/data'
             ],
             condition=IfCondition(LaunchConfiguration('use_alternative_viz')),
             output='screen'
