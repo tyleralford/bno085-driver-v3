@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_BNO08x.h>
+#include <hardware/watchdog.h>
 
 // micro-ROS includes
 #include <micro_ros_platformio.h>
@@ -76,12 +77,21 @@ struct {
   uint8_t quat_calibration_status;   // Quaternion/orientation calibration accuracy (0-3)
 } sensor_data = {0};
 
+// Agent connectivity tracking
+struct {
+  unsigned long last_publish_success;        // Last successful publish timestamp
+  unsigned long last_connectivity_check;     // Last connectivity check timestamp
+  bool agent_connected;                      // Current agent connection status
+  unsigned long connectivity_check_interval_ms; // How often to check connectivity (ms)
+  unsigned long agent_timeout_ms;            // Timeout for considering agent disconnected (ms)
+} agent_status = {0, 0, false, 1000, 3000}; // Check every 1s, timeout after 3s (triggers reset)
+
 // Function to initialize default configuration parameters
 void initializeDefaultConfig() {
   // Publishing parameters
   config.publish_rate_hz = 60.0;  // Default 60Hz as per REQ-03
   config.sync_timeout_ms = 5000;  // 5 seconds as per REQ-06  
-  config.sync_retry_attempts = 99999; // 3 attempts as per REQ-07
+  config.sync_retry_attempts = 3; // 3 attempts as per REQ-07
   
   // Baseline covariance values (conservative defaults)
   config.orientation_covariance_base = 0.05;      // 0.05 rad^2
@@ -199,8 +209,11 @@ void timer_callback(rcl_timer_t * timer, int64_t last_call_time) {
     calculateScaledCovariance(config.angular_velocity_covariance_base, sensor_data.gyro_calibration_status, imu_msg.angular_velocity_covariance);
     calculateScaledCovariance(config.linear_acceleration_covariance_base, sensor_data.accel_calibration_status, imu_msg.linear_acceleration_covariance);
     
-    // Publish the message
-    rcl_publish(&publisher, &imu_msg, NULL);
+    // Publish the message and track success for agent connectivity
+    rcl_ret_t publish_result = rcl_publish(&publisher, &imu_msg, NULL);
+    if (publish_result == RCL_RET_OK) {
+      agent_status.last_publish_success = millis();
+    }
   }
 }
 
@@ -246,6 +259,101 @@ void disableAllReports() {
   delay(200);
 }
 
+// Function to check if the agent is connected and update status
+bool checkAgentConnectivity() {
+  unsigned long current_time = millis();
+  
+  // Check if it's time to perform a connectivity check
+  if (current_time - agent_status.last_connectivity_check < agent_status.connectivity_check_interval_ms) {
+    return agent_status.agent_connected; // Return last known status
+  }
+  
+  agent_status.last_connectivity_check = current_time;
+  
+  // Check if we've had a successful publish within the timeout period
+  if (current_time - agent_status.last_publish_success > agent_status.agent_timeout_ms) {
+    agent_status.agent_connected = false;
+    Serial.println("Agent connectivity timeout - no successful publish in timeout period");
+    return false;
+  }
+  
+  agent_status.agent_connected = true;
+  return true;
+}
+
+// Function to reinitialize the entire micro-ROS stack
+bool reinitializeMicroROS() {
+  Serial.println("Reinitializing micro-ROS stack...");
+  
+  // Clean up existing micro-ROS entities
+  Serial.println("Cleaning up existing micro-ROS entities...");
+  rcl_timer_fini(&timer);
+  rcl_publisher_fini(&publisher, &node);
+  rcl_node_fini(&node);
+  rclc_support_fini(&support);
+  rclc_executor_fini(&executor);
+  
+  delay(1000); // Allow time for cleanup
+  
+  // Reinitialize micro-ROS transport
+  Serial.println("Reinitializing micro-ROS transport...");
+  set_microros_serial_transports(Serial);
+  delay(1000);
+  
+  // Initialize allocator
+  allocator = rcl_get_default_allocator();
+  
+  // Initialize support structure
+  if (rclc_support_init(&support, 0, NULL, &allocator) != RCL_RET_OK) {
+    Serial.println("Failed to reinitialize support structure");
+    return false;
+  }
+  
+  // Create node
+  if (rclc_node_init_default(&node, "bno085_publisher", "", &support) != RCL_RET_OK) {
+    Serial.println("Failed to reinitialize node");
+    return false;
+  }
+  
+  // Create publisher for IMU data
+  if (rclc_publisher_init_default(
+      &publisher,
+      &node,
+      ROSIDL_GET_MSG_TYPE_SUPPORT(sensor_msgs, msg, Imu),
+      "/imu/data") != RCL_RET_OK) {
+    Serial.println("Failed to reinitialize publisher");
+    return false;
+  }
+  
+  // Calculate timer period from configurable rate
+  int64_t timer_period_ns = (int64_t)(1000000000.0 / config.publish_rate_hz);
+  
+  // Create timer with configurable period
+  if (rclc_timer_init_default2(
+      &timer,
+      &support,
+      timer_period_ns,
+      timer_callback,
+      true) != RCL_RET_OK) {  // autostart
+    Serial.println("Failed to reinitialize timer");
+    return false;
+  }
+  
+  // Create executor with just the timer
+  if (rclc_executor_init(&executor, &support.context, 1, &allocator) != RCL_RET_OK) {
+    Serial.println("Failed to reinitialize executor");
+    return false;
+  }
+  
+  if (rclc_executor_add_timer(&executor, &timer) != RCL_RET_OK) {
+    Serial.println("Failed to add timer to executor");
+    return false;
+  }
+  
+  Serial.println("micro-ROS stack reinitialized successfully!");
+  return true;
+}
+
 void setup() {
   // Initialize serial for debugging
   Serial.begin(115200);
@@ -264,6 +372,13 @@ void setup() {
   // Set initial state and LED status
   current_state = INITIALIZING;
   setLedStatus(current_state);
+  
+  // Initialize agent status
+  agent_status.last_publish_success = millis();
+  agent_status.last_connectivity_check = millis();
+  agent_status.agent_connected = false; // Starts disconnected until first successful publish
+  agent_status.connectivity_check_interval_ms = 1000; // Check every 1 second
+  agent_status.agent_timeout_ms = 3000; // 3 second timeout (triggers software reset)
   
   // Initialize I2C with default pins
   wire2.begin(); // Use default I2C pins
@@ -401,7 +516,8 @@ void setup() {
   
   // Wait for time synchronization with agent
   Serial.println("Waiting for time synchronization with micro-ROS agent...");
-  while (!rmw_uros_epoch_synchronized()) {
+  int initial_sync_attempts = 0;
+  while (!rmw_uros_epoch_synchronized() && initial_sync_attempts < config.sync_retry_attempts) {
     // Update LED status for AWAITING_SYNC state
     setLedStatus(current_state);
     
@@ -411,9 +527,23 @@ void setup() {
       Serial.println("Time synchronization successful!");
       break;
     } else {
-      Serial.println("Time sync failed, retrying in 1 second...");
+      initial_sync_attempts++;
+      Serial.print("Time sync attempt ");
+      Serial.print(initial_sync_attempts);
+      Serial.print(" of ");
+      Serial.print(config.sync_retry_attempts);
+      Serial.println(" failed, retrying in 1 second...");
       delay(1000);
     }
+  }
+  
+  // Check if sync was successful or if we exhausted attempts
+  if (!rmw_uros_epoch_synchronized()) {
+    Serial.println("Initial time synchronization failed after maximum attempts!");
+    Serial.println("Transitioning to CRITICAL_FAULT - system will reset.");
+    current_state = CRITICAL_FAULT;
+    setLedStatus(current_state);
+    return; // Exit setup, main loop will handle the reset
   }
   
   // Transition to OPERATIONAL state
@@ -431,9 +561,18 @@ void loop() {
     case OPERATIONAL:
       // Check if time sync is still active
       if (!rmw_uros_epoch_synchronized()) {
-        Serial.println("Time synchronization lost! Transitioning to AWAITING_SYNC");
-        current_state = AWAITING_SYNC;
-        setLedStatus(current_state);
+        Serial.println("Time synchronization lost! Reinitializing micro-ROS stack...");
+        
+        // Attempt to reinitialize the entire micro-ROS stack
+        if (reinitializeMicroROS()) {
+          Serial.println("micro-ROS reinitialized successfully, transitioning to AWAITING_SYNC");
+          current_state = AWAITING_SYNC;
+          setLedStatus(current_state);
+        } else {
+          Serial.println("Failed to reinitialize micro-ROS, transitioning to CRITICAL_FAULT");
+          current_state = CRITICAL_FAULT;
+          setLedStatus(current_state);
+        }
         break;
       }
       
@@ -450,6 +589,14 @@ void loop() {
           setLedStatus(current_state);
           break;
         }
+      }
+      
+      // Check agent connectivity and transition to CRITICAL_FAULT if disconnected
+      if (!checkAgentConnectivity()) {
+        Serial.println("Agent disconnected! Transitioning to CRITICAL_FAULT");
+        current_state = CRITICAL_FAULT;
+        setLedStatus(current_state);
+        break;
       }
       
       // Spin the executor to handle timer callbacks
@@ -500,12 +647,36 @@ void loop() {
         current_state = OPERATIONAL;
         setLedStatus(current_state);
       } else {
-        // Attempt sync every 5 seconds as per requirements
+        // Attempt sync with retry counting and micro-ROS reinitialization
         static unsigned long last_sync_attempt = 0;
-        if (millis() - last_sync_attempt > 5000) {
+        static int sync_retry_count = 0;
+        
+        if (millis() - last_sync_attempt > 1000) {
           rmw_ret_t sync_ret = rmw_uros_sync_session(1000);
           if (sync_ret != RMW_RET_OK) {
-            Serial.println("Time sync attempt failed, will retry in 5 seconds...");
+            sync_retry_count++;
+            Serial.print("Time sync attempt ");
+            Serial.print(sync_retry_count);
+            Serial.print(" failed, will retry in 1 second...");
+            
+            // After multiple failed attempts, try reinitializing micro-ROS
+            if (sync_retry_count >= config.sync_retry_attempts) {
+              Serial.println(" Attempting micro-ROS reinitialization...");
+              if (reinitializeMicroROS()) {
+                Serial.println("micro-ROS reinitialized, resetting retry count");
+                sync_retry_count = 0;
+              } else {
+                Serial.println("micro-ROS reinitialization failed, transitioning to CRITICAL_FAULT");
+                current_state = CRITICAL_FAULT;
+                setLedStatus(current_state);
+                sync_retry_count = 0;
+              }
+            } else {
+              Serial.println();
+            }
+          } else {
+            // Reset retry count on successful sync attempt
+            sync_retry_count = 0;
           }
           last_sync_attempt = millis();
         }
@@ -513,22 +684,24 @@ void loop() {
       break;
       
     case CRITICAL_FAULT:
-      // Try to recover from critical fault by reinitializing sensor
-      static unsigned long last_recovery_attempt = 0;
-      if (millis() - last_recovery_attempt > 5000) {
-        Serial.println("Attempting to recover from critical fault...");
-        if (bno08x.begin_I2C(BNO085_ADDR, &wire2)) {
-          Serial.println("Sensor recovery successful! Returning to INITIALIZING state");
-          // Re-enable sensor reports
-          disableAllReports();
-          if (bno08x.enableReport(SH2_GAME_ROTATION_VECTOR, 1000) &&
-              bno08x.enableReport(SH2_GYROSCOPE_CALIBRATED, 1000) &&
-              bno08x.enableReport(SH2_ACCELEROMETER, 1000)) {
-            current_state = AWAITING_SYNC;  // Go to sync state since micro-ROS is already initialized
-            setLedStatus(current_state);
-          }
-        }
-        last_recovery_attempt = millis();
+      // Trigger software reset after a delay to allow serial output
+      static unsigned long fault_start_time = 0;
+      if (fault_start_time == 0) {
+        fault_start_time = millis();
+        Serial.println("CRITICAL FAULT detected! Initiating software reset in 3 seconds...");
+        Serial.println("This will restart the entire system to recover from the fault.");
+        Serial.flush(); // Ensure message is sent before reset
+      }
+      
+      // Wait 3 seconds to allow serial output, then reset
+      if (millis() - fault_start_time > 3000) {
+        Serial.println("Performing software reset now...");
+        Serial.flush(); // Ensure message is sent
+        delay(100); // Small delay to ensure serial transmission completes
+        
+        // Trigger software reset using hardware watchdog
+        watchdog_enable(1, 1); // Enable watchdog with 1ms timeout, force reset
+        while(1); // Wait for watchdog reset
       }
       break;
       

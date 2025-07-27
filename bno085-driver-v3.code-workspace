@@ -3,10 +3,6 @@
 		{
 			"path": "."
 		},
-		{
-			"name": "firmware",
-			"path": "firmware"
-		}
 	],
 	"settings": {}
 }
