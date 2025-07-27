@@ -5,11 +5,24 @@
 .vscode/launch.json
 .vscode/ipch
 
-# Build outputs
+# Build outputs and binaries
 *.bin
 *.elf
 *.hex
 *.uf2
+*.o
+*.so
+*.a
+*.lib
+*.dll
+*.exe
+
+# Core dumps and debug files
+core
+*.core
+*.dmp
+gdb.txt
+valgrind.log
 
 # Operating system files
 .DS_Store
@@ -19,20 +32,104 @@ Thumbs.db
 *.swp
 *.swo
 *~
+.#*
+\#*#
+
+# VS Code specific
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch/
+.vscode/.browse.c_cpp.db*
+
+# Vim
+*.vim
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
 
 # Python cache
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+.eggs/
 
-# ROS 2 build files
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# ROS 2 build files and directories
 build/
 install/
 log/
 
-# Temporary files
-*.tmp
-*.temp
+# Colcon build artifacts
+.colcon_install_layout
+.colcon_build_layout
+
+# ROS 2 workspace files
+COLCON_IGNORE
+AMENT_IGNORE
+
+# ROS 2 test results
+test_results/
+testing/
+*/test_results/
+
+# ROS 2 generated files
+*.autosave
+*.user
+
+# ROS 2 rosbag files
+*.bag
+*.db3
+*.mcap
+rosbag2_*/
+
+# ROS 2 parameter files (if auto-generated)
+*.yaml.bak
+*.yaml.orig
+
+# ROS 2 launch files backup
+*.launch.py~
+*.launch.xml~
+
+# CMake build artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+CTestTestfile.cmake
+Testing/
+
+# Generated documentation
+doc/
+docs/_build/
+docs/html/
+docs/latex/
+
+# ROS 2 setup files (if auto-generated)
+local_setup.*
+setup.*
+_local_setup_util.py
 
 # IDE files
 .idea/
@@ -46,5 +143,28 @@ log/
 
 # Environment files
 .env
-.venv/
-venv/
+.env.local
+.env.*.local
+
+# Temporary files and backups
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*~
+*.backup
+*.old
+
+# Log files
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Coverage reports
+coverage/
+.nyc_output
+.coverage
+htmlcov/
