@@ -1,16 +1,6 @@
 # BNO085 micro-ROS IMU Driver
 
-A high-performance micro-ROS driver for the Adafruit BNO085 9-DOF IMU sensor, designed for the Raspberry Pi Pico. This driver provides real-time IMU data publishing to ROS 2 with dynamic covariance scaling based on sensor calibration status.
-
-## Features
-
-- **High-frequency data publishing** at 60Hz with synchronized timestamps
-- **Dynamic covariance scaling** based on individual sensor calibration status
-- **Robust state machine** with fault recovery and LED status indicators
-- **Per-sensor calibration tracking** for accelerometer, gyroscope, and orientation
-- **Game Rotation Vector** for magnetometer-free orientation estimation
-- **Time synchronization** with ROS 2 agent for accurate timestamping
-- **Hardware abstraction** with configurable I2C pins and LED indicators
+A micro-ROS driver for the BNO085 9-DOF IMU sensor, designed for the Raspberry Pi Pico. This driver provides IMU data publishing to ROS 2 with dynamic covariance scaling based on sensor calibration status.
 
 ## Hardware Requirements
 

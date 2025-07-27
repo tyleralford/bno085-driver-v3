@@ -3,4 +3,4 @@
 __version__ = "1.0.0"
 __author__ = "Tyler Alford"
 __email__ = "alford.tyler94@gmail.com"
-__description__ = "A hmicro-ROS driver for the BNO085 9-DOF IMU sensor"
+__description__ = "A micro-ROS driver for the BNO085 9-DOF IMU sensor"
