@@ -64,7 +64,6 @@ echo "Checking directory structure:"
 echo ""
 echo "Checking Python package structure:"
 [ -f "bno085_driver/__init__.py" ] && print_status 0 "bno085_driver/__init__.py exists" || print_status 1 "bno085_driver/__init__.py missing"
-[ -f "bno085_driver/calibration_monitor.py" ] && print_status 0 "calibration_monitor.py exists" || print_status 1 "calibration_monitor.py missing"
 [ -f "resource/bno085_driver" ] && print_status 0 "resource marker file exists" || print_status 1 "resource marker file missing"
 
 # Check launch files

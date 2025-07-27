@@ -19,12 +19,6 @@ find_package(launch_ros REQUIRED)
 # Install Python package
 ament_python_install_package(${PROJECT_NAME})
 
-# Install Python executables
-install(PROGRAMS
-  bno085_driver/calibration_monitor.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
 # Install launch files
 install(DIRECTORY
   launch/

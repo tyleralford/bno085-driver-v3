@@ -78,14 +78,6 @@ class TestBNO085Driver(unittest.TestCase):
         except ImportError as e:
             self.fail(f"Failed to import package: {e}")
     
-    def test_calibration_monitor_import(self):
-        """Test that the calibration monitor can be imported."""
-        try:
-            from bno085_driver.calibration_monitor import IMUCalibrationMonitor
-            self.assertTrue(True, "Calibration monitor imported successfully")
-        except ImportError as e:
-            self.fail(f"Failed to import calibration monitor: {e}")
-    
     def test_imu_message_structure(self):
         """Test IMU message structure validation."""
         # Create a mock IMU message
@@ -99,16 +91,6 @@ class TestBNO085Driver(unittest.TestCase):
         self.assertTrue(hasattr(imu_msg, 'orientation_covariance'))
         self.assertTrue(hasattr(imu_msg, 'angular_velocity_covariance'))
         self.assertTrue(hasattr(imu_msg, 'linear_acceleration_covariance'))
-    
-    def test_node_creation(self):
-        """Test that nodes can be created without errors."""
-        try:
-            from bno085_driver.calibration_monitor import IMUCalibrationMonitor
-            test_node = IMUCalibrationMonitor()
-            test_node.destroy_node()
-            self.assertTrue(True, "Node created and destroyed successfully")
-        except Exception as e:
-            self.fail(f"Failed to create node: {e}")
 
 
 if __name__ == '__main__':

@@ -20,13 +20,12 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='Tyler Alford',
-    maintainer_email='tyler@example.com',
-    description='A high-performance micro-ROS driver for the Adafruit BNO085 9-DOF IMU sensor',
+    maintainer_email='alford.tyler94@gmail.com',
+    description='A micro-ROS driver for the BNO085 9-DOF IMU sensor',
     license='MIT',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'bno085_calibration_monitor = bno085_driver.calibration_monitor:main',
         ],
     },
 )

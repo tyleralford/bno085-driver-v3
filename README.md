@@ -142,15 +142,15 @@ ros2 launch bno085_driver bno085_complete.launch.py start_rqt_plot:=true
 ros2 launch bno085_driver bno085_agent.launch.py device:=/dev/ttyACM0
 ```
 
-### 2. Monitor Calibration Status
-Use the built-in calibration monitor to track sensor calibration in real-time:
+### 2. Monitor IMU Data
+View the IMU data directly using ROS 2 tools:
 
 ```bash
-# Start the calibration monitor
-ros2 run bno085_driver bno085_calibration_monitor
-
-# Or view IMU data directly
+# View IMU data directly
 ros2 topic echo /imu/data
+
+# Check publishing rate
+ros2 topic hz /imu/data
 ```
 
 ### 3. Verify System Operation
