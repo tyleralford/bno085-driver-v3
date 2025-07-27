@@ -51,24 +51,48 @@ A high-performance micro-ROS driver for the Adafruit BNO085 9-DOF IMU sensor, de
 
 ## Installation and Setup
 
-### 1. Clone the Repository
+### Prerequisites
+- **ROS 2 Jazzy** (or compatible distribution)
+- **PlatformIO IDE** for firmware development
+- **Raspberry Pi Pico** with BNO085 IMU sensor
+
+### 1. Install as ROS 2 Package
+
+#### From Source (Recommended)
 ```bash
-git clone <repository-url>
-cd bno085-driver-v3
+# Create a ROS 2 workspace
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+
+# Clone the repository
+git clone https://github.com/tyleralford/bno085-driver-v3.git bno085_driver
+
+# Install dependencies
+cd ~/ros2_ws
+rosdep install --from-paths src --ignore-src -r -y
+
+# Build the package
+colcon build --packages-select bno085_driver
+
+# Source the workspace
+source install/setup.bash
 ```
 
-### 2. Install PlatformIO
-If you haven't already, install PlatformIO:
+#### Using Quick Start Script
 ```bash
-# Install PlatformIO Core
-pip install platformio
-
-# Or install via VS Code extension
-# Search for "PlatformIO IDE" in VS Code extensions
+cd ~/ros2_ws/src/bno085_driver
+chmod +x quick_start.sh
+./quick_start.sh
 ```
+
+### 2. Hardware Setup
+Connect your BNO085 sensor to the Raspberry Pi Pico according to the wiring table above.
 
 ### 3. Build and Upload Firmware
 ```bash
+# Navigate to the firmware directory
+cd ~/ros2_ws/src/bno085_driver
+
 # Build the project
 pio run
 
@@ -79,15 +103,6 @@ pio run --target upload
 # Optional: Monitor serial output
 pio device monitor --baud 115200
 ```
-
-### 4. Install ROS 2 and micro-ROS Agent
-```bash
-# Install ROS 2 Jazzy (Ubuntu 22.04)
-sudo apt update
-sudo apt install ros-jazzy-desktop
-
-# Source ROS 2
-source /opt/ros/jazzy/setup.bash
 
 # Install micro-ROS agent
 sudo apt install ros-jazzy-micro-ros-agent
@@ -103,51 +118,59 @@ sudo apt install ros-jazzy-micro-ros-agent
 
 ## Usage
 
-### 1. Start the micro-ROS Agent
-The micro-ROS agent bridges communication between the Pico and ROS 2. Choose one of the following methods:
+### 1. Launch the Complete System
+The package provides several launch files for different use cases:
 
-#### Option A: Direct Serial Connection
+#### Full System Launch (Recommended)
 ```bash
-# Find the Pico's serial port
-ls /dev/ttyACM*
+# Launch everything: micro-ROS agent, transforms, and visualization
+ros2 launch bno085_driver bno085_complete.launch.py
 
-# Start the agent (replace /dev/ttyACM0 with your device)
-ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyACM0 --baud 115200
+# With custom device path
+ros2 launch bno085_driver bno085_complete.launch.py device:=/dev/ttyACM0
+
+# Without RViz
+ros2 launch bno085_driver bno085_complete.launch.py start_rviz:=false
+
+# With real-time plotting
+ros2 launch bno085_driver bno085_complete.launch.py start_rqt_plot:=true
 ```
 
-#### Option B: Using Launch File (Recommended)
-Create a launch file for easier management:
-
+#### Agent Only
 ```bash
-# Create launch directory
-mkdir -p ~/imu_ws/src/bno085_launch/launch
-
-# Copy the launch file (see launch files section below)
-# Then build and source the workspace
-cd ~/imu_ws
-colcon build
-source install/setup.bash
-
-# Launch the agent
-ros2 launch bno085_launch bno085_agent.launch.py
+# Start just the micro-ROS agent
+ros2 launch bno085_driver bno085_agent.launch.py device:=/dev/ttyACM0
 ```
 
-### 2. Verify Data Publishing
+### 2. Monitor Calibration Status
+Use the built-in calibration monitor to track sensor calibration in real-time:
+
+```bash
+# Start the calibration monitor
+ros2 run bno085_driver bno085_calibration_monitor
+
+# Or view IMU data directly
+ros2 topic echo /imu/data
+```
+
+### 3. Verify System Operation
 ```bash
 # List active topics
 ros2 topic list
 
-# View IMU data
-ros2 topic echo /imu/data
-
-# Check publishing rate
+# Check IMU data publishing rate
 ros2 topic hz /imu/data
 
 # View calibration status (reflected in covariance values)
 ros2 topic echo /imu/data --field orientation_covariance
+
+# Monitor transforms
+ros2 run tf2_tools view_frames.py
 ```
 
-## Launch Files
+## ROS 2 Package Features
+
+### Launch Files
 
 ### Agent Launch File
 Create `~/imu_ws/src/bno085_launch/launch/bno085_agent.launch.py`:

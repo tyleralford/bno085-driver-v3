@@ -38,6 +38,7 @@ log/
 .idea/
 *.sublime-project
 *.sublime-workspace
+*.code-workspace
 
 # Package files
 *.tar.gz

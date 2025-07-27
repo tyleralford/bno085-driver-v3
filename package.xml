@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>bno085_driver</name>
+  <version>1.0.0</version>
+  <description>A high-performance micro-ROS driver for the Adafruit BNO085 9-DOF IMU sensor</description>
+  
+  <maintainer email="tyler@example.com">Tyler Alford</maintainer>
+  <license>MIT</license>
+  
+  <url type="website">https://github.com/tyleralford/bno085-driver-v3</url>
+  <url type="bugtracker">https://github.com/tyleralford/bno085-driver-v3/issues</url>
+  <url type="repository">https://github.com/tyleralford/bno085-driver-v3</url>
+  
+  <author email="tyler@example.com">Tyler Alford</author>
+  
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  
+  <!-- Runtime dependencies -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>tf2_ros</exec_depend>
+  <exec_depend>micro_ros_agent</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>rqt_plot</exec_depend>
+  
+  <!-- Build dependencies -->
+  <depend>launch</depend>
+  <depend>launch_ros</depend>
+  
+  <!-- Test dependencies -->
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+  <test_depend>ament_cmake_pytest</test_depend>
+  
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

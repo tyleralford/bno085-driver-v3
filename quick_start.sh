@@ -42,8 +42,8 @@ fi
 
 if ! ros2 pkg list | grep -q micro_ros_agent; then
     echo "Error: micro-ROS agent not found."
-    echo "Please install it with:"
-    echo "  sudo apt install ros-jazzy-micro-ros-agent"
+    echo "Please install it:"
+    echo "  https://micro.ros.org/docs/tutorials/core/first_application_linux/"
     exit 1
 fi
 
