@@ -131,6 +131,16 @@ ros2 launch bno085_driver bno085_complete.launch.py start_rqt_plot:=true
 ros2 launch bno085_driver bno085_agent.launch.py device:=/dev/ttyACM0
 ```
 
+#### Minimal Launch (No RViz)
+For systems with RViz issues (e.g., snap package conflicts):
+```bash
+# Launch without RViz, with optional terminal data display
+ros2 launch bno085_driver bno085_minimal.launch.py device:=/dev/ttyACM0 show_data:=true
+
+# Or use alternative visualization in complete launch
+ros2 launch bno085_driver bno085_complete.launch.py start_rviz:=false use_alternative_viz:=true
+```
+
 ### 2. Monitor IMU Data
 View the IMU data directly using ROS 2 tools:
 
@@ -140,6 +150,11 @@ ros2 topic echo /imu/data
 
 # Check publishing rate
 ros2 topic hz /imu/data
+
+# View specific fields
+ros2 topic echo /imu/data --field angular_velocity
+ros2 topic echo /imu/data --field linear_acceleration
+ros2 topic echo /imu/data --field orientation
 ```
 
 ### 3. Verify System Operation
@@ -155,6 +170,37 @@ ros2 topic echo /imu/data --field orientation_covariance
 
 # Monitor transforms
 ros2 run tf2_tools view_frames.py
+```
+
+## Troubleshooting
+
+### RViz Issues
+If you encounter RViz errors (especially on Ubuntu with snap packages):
+
+```bash
+# Symptom: symbol lookup error with libpthread.so.0
+# Solution 1: Use minimal launch without RViz
+ros2 launch bno085_driver bno085_minimal.launch.py device:=/dev/ttyACM0 show_data:=true
+
+# Solution 2: Use alternative visualization
+ros2 launch bno085_driver bno085_complete.launch.py start_rviz:=false use_alternative_viz:=true
+
+# Solution 3: Install native RViz instead of snap
+sudo apt remove rviz2
+sudo apt install ros-jazzy-rviz2
+```
+
+### Static Transform Publisher Warnings
+The launch files use new-style arguments to avoid deprecation warnings. If you see old-style warnings, ensure you're using the latest launch files.
+
+### Serial Connection Issues
+```bash
+# Check device permissions
+ls -l /dev/ttyACM*
+sudo usermod -a -G dialout $USER  # Add user to dialout group (logout/login required)
+
+# Test different baud rates
+ros2 launch bno085_driver bno085_agent.launch.py device:=/dev/ttyUSB0  # Try USB0 if ACM0 fails
 ```
 
 ## System States and LED Indicators

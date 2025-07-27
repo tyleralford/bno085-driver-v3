@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
-import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess
 from launch.substitutions import LaunchConfiguration
-from launch.conditions import IfCondition, UnlessCondition
+from launch.conditions import IfCondition
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     return LaunchDescription([
@@ -18,21 +16,9 @@ def generate_launch_description():
         ),
         
         DeclareLaunchArgument(
-            'start_rviz',
-            default_value='true',
-            description='Start RViz for IMU visualization'
-        ),
-        
-        DeclareLaunchArgument(
-            'start_rqt_plot',
+            'show_data',
             default_value='false',
-            description='Start rqt_plot for real-time data plotting'
-        ),
-        
-        DeclareLaunchArgument(
-            'use_alternative_viz',
-            default_value='false',
-            description='Use alternative visualization instead of RViz (useful for snap RViz issues)'
+            description='Show IMU data in terminal'
         ),
         
         # micro-ROS agent node
@@ -64,37 +50,13 @@ def generate_launch_description():
             output='screen'
         ),
         
-        # RViz for visualization
-        ExecuteProcess(
-            cmd=['rviz2', '-d', os.path.join(
-                get_package_share_directory('bno085_driver'), 
-                'rviz', 
-                'bno085_imu.rviz'
-            )],
-            condition=IfCondition(LaunchConfiguration('start_rviz')),
-            output='screen'
-        ),
-        
-        # rqt_plot for real-time data visualization
-        ExecuteProcess(
-            cmd=[
-                'rqt_plot',
-                '/imu/data/angular_velocity/x',
-                '/imu/data/angular_velocity/y', 
-                '/imu/data/angular_velocity/z',
-                '--title', 'IMU Angular Velocity'
-            ],
-            condition=IfCondition(LaunchConfiguration('start_rqt_plot')),
-            output='screen'
-        ),
-        
-        # Alternative visualization - topic echo (when RViz has issues)
+        # Show IMU data in terminal (alternative to RViz)
         ExecuteProcess(
             cmd=[
                 'ros2', 'topic', 'echo', '/imu/data', 
                 '--field', 'angular_velocity'
             ],
-            condition=IfCondition(LaunchConfiguration('use_alternative_viz')),
+            condition=IfCondition(LaunchConfiguration('show_data')),
             output='screen'
         )
     ])
