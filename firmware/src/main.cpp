@@ -91,7 +91,7 @@ void initializeDefaultConfig() {
   // Publishing parameters
   config.publish_rate_hz = 60.0;  // Default 60Hz as per REQ-03
   config.sync_timeout_ms = 5000;  // 5 seconds as per REQ-06  
-  config.sync_retry_attempts = 3; // 3 attempts as per REQ-07
+  config.sync_retry_attempts = 10; // 3 attempts as per REQ-07
   
   // Baseline covariance values (conservative defaults)
   config.orientation_covariance_base = 0.05;      // 0.05 rad^2
